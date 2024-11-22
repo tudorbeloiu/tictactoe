@@ -9,15 +9,20 @@ newLine: .asciz "\n"
 joc: .space 21
 winner: .space 4 //winner e 0 la inceput, winner=1 => castiga 1 jucator, winner=2 => castiga al doilea jucator
 turn: .space 4 //aici retinem al cui este randul, turn=1 => randul jucatorului 1,turn = 2 => randul jucatorului 2
-whoStarts: .asciz "Care jucator incepe ?\n"
+whoStarts: .asciz "Which player starts?\n"
 whoStartsInp: .asciz "%ld"
-msjCerere: .asciz "Jucatorul %ld introduce pozitia: \n"
+msjCerere: .asciz "Player %ld chooses: \n"
 inpPozX: .space 4
 inpPozY: .space 4
 msjPoz: .asciz "%ld %ld"
-winnerIs: .asciz "Castigatorul este "
+winnerIs: .asciz "Winner is:  "
 won: .asciz "%ld\n"
-msjAltaPozitie: .asciz "Spatiul este deja luat, introdu alta pozitie!\n"
+msjAltaPozitie: .asciz "Position already taken, choose another one!\n"
+msjInAfaraZonei: .asciz "Out of boundaries!\n"
+msjDraw: .asciz "It is a draw! Press Y to play again or N to end it friendly!\n"
+msjDrawInput: .asciz "%s"
+charDrawInput: .space 1
+nrOfInputs: .space 4
 //conventie juc1 = X, juc2 = 0
 
 .text
@@ -74,6 +79,9 @@ ret
 
 main:
 //formam patratul jocului
+movl $0,%eax
+movl %eax,nrOfInputs
+
 lea joc,%edi
 movl $0,%ebx
 
@@ -119,7 +127,10 @@ lea joc,%edi
 
 findwinner:
 cmpl $0,winner
-jne foundwinner //daca winner!=0, inseamna ca cineva a castigat jocul
+jne foundwinner
+movl $9,%eax
+cmpl nrOfInputs,%eax
+je mesajReincepere
 
 pushl turn
 pushl $msjCerere
@@ -150,7 +161,22 @@ movl $0,%ecx
 movb (%edi,%eax,1),%cl
 cmpb $'-',%cl
 jne alegealtapozitie
+
+movl inpPozX,%ebx
+movl inpPozY,%ecx
+cmpl $0,%ebx
+jl alegealtapozitie1
+cmpl $0,%ecx
+jl alegealtapozitie1
+cmpl $2,%ebx
+ja alegealtapozitie1
+cmpl $2,%ecx
+ja alegealtapozitie1
 //
+movl nrOfInputs,%eax
+incl %eax
+movl %eax,nrOfInputs
+
 movl $3,%eax
 movl inpPozX,%ebx
 movl inpPozY,%ecx
@@ -297,6 +323,35 @@ pushl $msjAltaPozitie
 call printf
 popl %eax
 jmp findwinner
+
+alegealtapozitie1:
+pushl $msjInAfaraZonei
+call printf
+popl %eax
+jmp findwinner
+
+mesajReincepere:
+pushl $msjDraw
+call printf
+popl %eax
+
+pushl %ecx
+pushl %edx
+pushl $charDrawInput
+pushl $msjDrawInput
+call scanf
+popl %eax
+popl %eax
+popl %edx
+popl %ecx
+
+movl $0,%eax
+movb charDrawInput,%al
+cmpb $'Y', %al
+jne etexit
+jmp rezpb
+
+
 
 foundwinner:
 pushl $winnerIs
